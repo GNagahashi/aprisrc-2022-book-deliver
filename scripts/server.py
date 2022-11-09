@@ -9,24 +9,27 @@ from book_deliver.srv import Order, OrderResponse
 
 
 def main():
-    name_of_node = 'book_deliver_server'
-    name_of_service = 'book_deliver_service'
-    name_of_topic_for_drone = '/gnc_node/cmd'
+    # define name (node, service, etc)
+    name_of_node = 'book_deliver_server'  # this node name
+    name_of_service = 'book_deliver_service'  # name of the service provided by this node
+    name_of_topic_for_drone = '/gnc_node/cmd'  # the drone receives commands from this topic
+
+    # node initialization
+    rospy.init_node(name_of_node, anonymous = True)
 
     service = Service()
 
-    rospy.init_node(name_of_node, anonymous = True)
-
+    # create service server
     rospy.loginfo('Creating service server({}), please wait a minute...'.format(name_of_service))
     rospy.Service(name_of_service, Order, service.service_callback)
 
+    # create publisher to send command to the drone
     rospy.loginfo('Creating publisher for "{}", please wait a minute...'.format(name_of_topic_for_drone))
     service.topic_name_for_drone_ctrl = name_of_topic_for_drone
     service.handler_for_drone_ctrl = rospy.Publisher(name_of_topic_for_drone, String, queue_size = 10)
 
     rospy.loginfo('Ready to go')
-    rospy.spin()
-    pass
+    rospy.spin()  # server will be started
 
 
 class Service(object):

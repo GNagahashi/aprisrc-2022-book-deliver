@@ -6,13 +6,16 @@ from book_deliver.srv import Order
 
 
 def main():
-    name_of_node = 'book_deliver_client'
-    name_of_service = 'book_deliver_service'
+    # define name (node, service, etc)
+    name_of_node = 'book_deliver_client'  # this node name
+    name_of_service = 'book_deliver_service'  # name of the service used by this node
 
+    # node initialization
     rospy.init_node(name_of_node, anonymous = True)
 
+    # create client to connect to the server
     rospy.loginfo('Create client for {}, please wait a minute...'.format(name_of_service))
-    rospy.wait_for_service(name_of_service)
+    rospy.wait_for_service(name_of_service)  # when the service is not running, it is blocked here
     handler_for_service = rospy.ServiceProxy(name_of_service, Order)
 
     rospy.loginfo('Ready to go')
