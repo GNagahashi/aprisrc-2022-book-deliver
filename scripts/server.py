@@ -3,7 +3,7 @@
 from os import environ
 from enum import Enum
 import rospy
-# from time import sleep
+from time import sleep
 from std_msgs.msg import String
 from book_deliver.srv import Order, OrderResponse
 
@@ -37,7 +37,7 @@ class Service(object):
         """constructor"""
         self.__topic_name_for_drone_ctrl = None  # name of topic to send command for drone
         self.__handler_for_drone_ctrl = None  # handler for publish message to drone
-        self.__publish_rate = 1  # 1[Hz], publish 1 times per second
+        self.__publish_rate = rospy.Rate(1)  # 1[Hz], publish 1 times per second
 
     @property
     def topic_name_for_drone_ctrl(self):
@@ -64,29 +64,40 @@ class Service(object):
     @publish_rate.setter
     def publish_rate(self, rate):
         """setter"""
-        self.__publish_rate = rate
+        self.__publish_rate = rospy.Rate(rate)
     
     def service_callback(self, req):
         """when server received message, execute this function"""
         rospy.loginfo('Server has received request: {}'.format(req.data))
-        res = OrderResponse()  # create response
-        if req == ServiceCmd.ORDER.value:
+        res = OrderResponse()  # create response message
+        if req.data == ServiceCmd.ORDER.value:
+            # accepted order
             with open('/home/' + environ['USER'] + '/waypoint.dat', mode = 'r', encoding = 'utf-8') as f:
                 n = int(f.readline().replace(':', ''))
-            
+            rospy.loginfo('Number of waypoints is {}'.format(n))
+            # takeoff the drone
+            self.cmd_to_drone(DroneCmd.START.value)
+            sleep(10)
+            # move the drone to waypoint
             for i in range(n):
                 self.cmd_to_drone(DroneCmd.NEXT.value)
-                rospy.sleep(5)
-            pass
-        elif req == ServiceCmd.ACK.value:
-            pass
+                sleep(5)
+            res.data = True
+        elif req.data == ServiceCmd.ACK.value:
+            # the book was received
+            self.cmd_to_drone(DroneCmd.BACKHOME.value)
+            res.data = True
+        else:
+            print('error')
+            res.data = False
+        rospy.loginfo('Server send response: {}'.format(res.data))
         return res  # send response to client
 
     def cmd_to_drone(self, cmd):
         """send command to drone"""
         if not rospy.is_shutdown():
             msg = String(data = cmd)
-            self.handler_for_drone_ctrl(msg)  # publish message
+            self.handler_for_drone_ctrl.publish(msg)  # publish message
             rospy.loginfo('Published message: {}'.format(msg.data))
             self.publish_rate.sleep()
         else:
